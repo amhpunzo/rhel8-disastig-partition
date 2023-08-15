@@ -1,0 +1,85 @@
+---
+- hosts: localhost
+  connection: local
+  become: yes
+  become_method: sudo
+  gather_facts: yes
+  vars:
+    #ansible_python_interpreter: /usr/bin/python3.11
+    vol_new_size: "{{ desired_size | default(50) }}"
+    boot_size: "{{ boot_parts | default(1) }}"
+    var_size: "{{ var_parts | default(15) }}"
+    log_size: "{{ log_parts | default(7) }}"
+    vtmp_size: "{{ vtmp_parts | default(2) }}"
+    audit_size: "{{ audit_parts | default(5) }}"
+    home_size: "{{ home_parts | default(7) }}"
+    tmp_size: "{{ tmp_parts | default(3) }}"
+
+  # environment:
+  #   AWS_ACCESS_KEY_ID: "{{ aws_access_key }}"
+  #   AWS_SECRET_ACCESS_KEY: "{{ aws_secret_key}}"
+  #   AWS_SESSION_TOKEN: "{{ aws_session_token }}"
+  
+  pre_tasks:
+    - name: Perform the Pre Tasks to prep for partitioning
+      block:
+
+          - name: Get ansible python version
+            debug:
+               msg: "{{ ansible_python_interpreter }}"
+    
+          - name: Install dependencies
+            ansible.builtin.package:
+              state: latest
+              name:
+                - parted
+            
+          - name: Get drive type
+            ansible.builtin.shell: lsblk -o 'NAME'
+            register: disk_info
+
+          - name: Set disk name as fact
+            set_fact:
+              vol_drive: "/dev/{{ disk_info.stdout_lines[1] | default('xvda') }}"
+
+          - name: Gather ec2 metadata facts
+            ec2_metadata_facts: 
+
+          - name: Show my instance id
+            debug:
+              msg: "{{ ansible_ec2_instance_id }}"
+
+          - name: Get EBS Info
+            amazon.aws.ec2_vol_info:
+              region: "{{ ansible_ec2_placement_region }}"
+              filters:
+                attachment.instance-id: "{{ ansible_ec2_instance_id }}"
+            register: vol_info
+
+          - set_fact:
+              vol_id: "{{ vol_info.volumes[0].id }}"
+              vol_size: "{{ vol_info.volumes[0].size }}"
+    
+    - name: Increase Volume Size
+      block:
+          - name: Expand EBS volume
+            shell: /usr/local/bin/aws --region "{{ ansible_ec2_placement_region }}" ec2 modify-volume --volume-id "{{ vol_id }}" --size "{{ vol_new_size | int}}" --output json
+            when:
+              - vol_new_size | int > vol_size | int
+            
+          
+          - name: Wait for volume modification to complete
+            #become: no
+            shell: /usr/local/bin/aws --region "{{ ansible_ec2_placement_region }}" ec2 describe-volumes-modifications --volume-id "{{ vol_id }}" --output json
+            register: result
+            until: result.stdout.find('completed') != -1 or result.stdout.find('optimizing') != -1
+            retries: 60
+            delay: 5
+            changed_when: False
+            when:
+              - vol_new_size | int > vol_size | int
+
+
+  roles:
+    - "{{ playbook_dir }}"
+

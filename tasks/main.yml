@@ -1,0 +1,9 @@
+---
+- name: Run tasks to partition the newly added space
+  ansible.builtin.import_tasks: stig-parts.yml
+      
+- name: Run tasks for mounting, syncing and fs creation 
+  ansible.builtin.import_tasks: stig-xfs-mounts.yml
+
+- name: Run tasks to get UUID for partitions and update /etc/fstab
+  ansible.builtin.import_tasks: stig-update-fstab.yml

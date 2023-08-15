@@ -1,0 +1,270 @@
+---
+
+- name: Creat temp mount dirs
+  block:    
+    - name: Create audit dir
+      file:
+        path: /mnt/audit
+        state: directory
+        mode: 0755
+
+    - name: Create log dir
+      file:
+        path: /mnt/log
+        state: directory
+        mode: 0755
+
+    - name: Create vartmp dir
+      file:
+        path: /mnt/vtmp
+        state: directory
+        mode: 0755
+
+    - name: Create var dir
+      file:
+        path: /mnt/var
+        state: directory
+        mode: 0755
+
+    - name: Create home dir
+      file:
+        path: /mnt/home
+        state: directory
+        mode: 0755
+  
+    - name: Create tmp dir
+      file:
+        path: /mnt/tmp
+        state: directory
+        mode: 0755
+
+    - name: Create boot dir
+      file:
+        path: /mnt/boot
+        state: directory
+        mode: 0755
+
+
+- name: Sync Stuff from original dirs to temp location in /mnt
+  block:
+    - name: Rsync /var/log/audit to /mnt/audit
+      ansible.posix.synchronize:
+        src: /var/log/audit/
+        dest: /mnt/audit/
+        archive: yes
+        rsync_opts:
+          - "-A"
+          - "-X"
+
+    - name: Rsync /var/log to /var/log
+      ansible.posix.synchronize:
+        src: /var/log/
+        dest: /mnt/log/
+        archive: yes
+        rsync_opts:
+          - "-A"
+          - "-X"
+
+    - name: Rsync /var/tmp to /mnt/vtmp
+      ansible.posix.synchronize:
+        src: /var/tmp/
+        dest: /mnt/vtmp/
+        archive: yes
+        rsync_opts:
+          - "-A"
+          - "-X"
+
+    - name: Rsync /var to /mnt/var
+      ansible.posix.synchronize:
+        src: /var/
+        dest: /mnt/var/
+        archive: yes
+        rsync_opts:
+          - "-A"
+          - "-X"
+
+    - name: Rsync /home to /mnt/home
+      ansible.posix.synchronize:
+        src: /home/
+        dest: /mnt/home/
+        archive: yes
+        rsync_opts:
+          - "-A"
+          - "-X"
+
+    - name: Rsync /tmp/ to /mnt/tmp/
+      ansible.posix.synchronize:
+        src: /tmp/
+        dest: /mnt/tmp/
+        archive: yes
+        rsync_opts:
+          - "-A"
+          - "-X"
+        
+    - name: Rsync /boot to /mnt/boot
+      ansible.posix.synchronize:
+        src: /boot
+        dest: /mnt/boot/
+        archive: yes
+        rsync_opts:
+          - "-A"
+          - "-X"
+
+- name: Create fs
+  block:
+    - name: Get output of current block
+      shell: lsblk
+
+    - name: Get more detailed output from gdisk
+      shell: gdisk -l {{ vol_drive }}
+
+
+    - name: Create xfs filesystem on var
+      filesystem:
+        fstype: "xfs"
+        dev: "{{ vol_drive }}p3"
+        #force: yes
+
+    - name: Create xfsfilesystem on log
+      filesystem:
+        fstype: "xfs"
+        dev: "{{ vol_drive }}p4"
+        #force: yes
+
+    - name: Create xfs filesystem on vartmp
+      filesystem:
+        fstype: "xfs"
+        dev: "{{ vol_drive }}p5"
+
+    - name: Create xfs filesystem on audit
+      filesystem:
+        fstype: "xfs"
+        dev: "{{ vol_drive }}p6"
+        #force: yes
+
+    - name: Create xfs filesystem on home
+      filesystem:
+        fstype: "xfs"
+        dev: "{{ vol_drive }}p7"
+
+    - name: Create xfs filesystem on tmp
+      filesystem:
+        fstype: "xfs"
+        dev: "{{ vol_drive }}p8"
+
+    - name: Create xfs filesystem on boot
+      filesystem:
+        fstype: "xfs"
+        dev: "{{ vol_drive }}p9"
+
+######
+    - name: Mount var dir
+      command: "mount {{ vol_drive }}p3 /var"
+    
+    - name: Create var log dir
+      file:
+        path: /var/log
+        state: directory
+        mode: 0755
+
+    - name: Mount log dir
+      command: "mount {{ vol_drive }}p4 /var/log"
+
+    - name: Create var tmp dir
+      file:
+        path: /var/tmp
+        state: directory
+        mode: 0755
+
+    - name: Mount log dir
+      command: "mount {{ vol_drive }}p5 /var/tmp"
+
+    - name: Create var log audit dir
+      file:
+        path: /var/log/audit
+        state: directory
+        mode: 0755
+
+    - name: Mount audit dir
+      command: "mount {{ vol_drive }}p6 /var/log/audit"
+
+    - name: Mount home dir
+      command: "mount {{ vol_drive }}p7 /home"
+
+    - name: Mount tmp dir
+      command: "mount {{ vol_drive }}p8 /tmp"
+
+    - name: Mount boot dir
+      command: "mount {{ vol_drive }}p9 /boot"
+    
+
+
+- name: Sync Stuff to new mounts
+  block:
+    - name: Sync from /mnt back to var
+      ansible.posix.synchronize:
+        src: /mnt/var/
+        dest: /var/
+        archive: yes
+        rsync_opts:
+          - "-A"
+          - "-X"
+
+
+    - name: Sync from /mnt back to var log
+      ansible.posix.synchronize:
+        src: /mnt/log/
+        dest: /var/log/
+        archive: yes
+        rsync_opts:
+          - "-A"
+          - "-X"
+
+    - name: Sync from /mnt back to var tmp
+      ansible.posix.synchronize:
+        src: /mnt/vtmp/
+        dest: /var/tmp/
+        archive: yes
+        rsync_opts:
+          - "-A"
+          - "-X"
+
+    - name: Sync from /mnt back to var audit
+      ansible.posix.synchronize:
+        src: /mnt/audit/
+        dest: /var/log/audit/
+        archive: yes
+        rsync_opts:
+          - "-A"
+          - "-X"
+
+
+    - name: Sync from /mnt back to home
+      ansible.posix.synchronize:
+        src: /mnt/home/
+        dest: /home/
+        archive: yes
+        rsync_opts:
+          - "-A"
+          - "-X"
+
+    - name: Sync from /mnt back to tmp
+      ansible.posix.synchronize:
+        src: /mnt/tmp/
+        dest: /tmp/
+        archive: yes
+        rsync_opts:
+          - "-A"
+          - "-X"
+
+    - name: Sync from /mnt back to boot
+      ansible.posix.synchronize:
+        src: /mnt/boot/
+        dest: /boot/
+        archive: yes
+        rsync_opts:
+          - "-A"
+          - "-X"
+
+
+

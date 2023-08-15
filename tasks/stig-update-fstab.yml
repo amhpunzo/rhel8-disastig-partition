@@ -1,0 +1,90 @@
+---
+
+- name: Find the boot UUIDs
+  block:
+    - name: Find var uuid
+      shell: blkid -o value -s UUID {{ vol_drive }}p3
+      register: uuid_var
+    
+    - name: Find log uuid
+      shell: blkid -o value -s UUID {{ vol_drive }}p4
+      register: uuid_log
+
+    - name: Find /var/tmp uuid
+      shell: blkid -o value -s UUID {{ vol_drive }}p5
+      register: uuid_vartmp
+    
+    - name: Find audit uuid
+      shell: blkid -o value -s UUID {{ vol_drive }}p6
+      register: uuid_audit
+    
+    - name: Find home uuid
+      shell: blkid -o value -s UUID {{ vol_drive }}p7
+      register: uuid_home
+    
+    - name: Find tmp uuid
+      shell: blkid -o value -s UUID {{ vol_drive }}p8
+      register: uuid_tmp
+
+    - name: Find boot uuid
+      shell: blkid -o value -s UUID {{ vol_drive }}p9
+      register: uuid_boot
+
+- name: Update the /etc/fstab
+  block:
+    - name: Update fstab for var
+      mount:
+        path: /var
+        src: UUID={{ uuid_var.stdout_lines[0] }}
+        fstype: "xfs"
+        opts: nodev
+        state: present
+
+    - name: Update fstab for log
+      mount:
+        path: /var/log
+        src: UUID={{ uuid_log.stdout_lines[0] }}
+        fstype: "xfs"
+        opts: nodev,nosuid,noexec
+        state: present
+
+    - name: Update fstab for /var/tmp
+      mount:
+        path: /var/tmp
+        src: UUID={{ uuid_vartmp.stdout_lines[0] }}
+        fstype: "xfs"
+        opts: nodev,nosuid,noexec
+        state: present
+
+    - name: Update fstab for audit
+      mount:
+        path: /var/log/audit
+        src: UUID={{ uuid_audit.stdout_lines[0] }}
+        fstype: "xfs"
+        opts: nodev,nosuid,noexec
+        state: present
+    
+    - name: Update fstab for home
+      mount:
+        path: /home
+        src: UUID={{ uuid_home.stdout_lines[0] }}
+        fstype: "xfs"
+        opts: nodev
+        state: present
+
+    - name: Update fstab for tmp
+      mount:
+        path: /tmp
+        src: UUID={{ uuid_tmp.stdout_lines[0] }}
+        fstype: "xfs"
+        opts: nodev,nosuid,noexec
+        state: present
+
+    - name: Update fstab for boot
+      mount:
+        path: /boot
+        src: UUID={{ uuid_tmp.stdout_lines[0] }}
+        fstype: "xfs"
+        opts: nodev,nosuid
+        state: present
+
