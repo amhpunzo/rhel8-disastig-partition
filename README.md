@@ -31,16 +31,23 @@ The following are the extra vars that can be passed to the ansible playbook:
 ```txt
 Extra vars that can be passed to the script
 --extra-vars "vol_new_size": Size to modify ec2 volume to. 
-  Default value is 50. 
+  Default value is 60. 
   (NOTE: If starting vol size is 10 and this var is set to 50 
    the final vol size will be 50)
+--extra-vars "boot_size": Size of the partion for /boot
+  Default value is 1G
 --extra-vars "var_size": Size of the partion for /var
-  Default value is 10
+  Default value is 15
 --extra-vars "log_size"
+  Default value is 7
 --extra-vars "vtmp_size"
+  Default value is 2
 --extra-vars "audit_size"
+  Default value is 5
 --extra-vars "home_size"
+  Default value is 7
 --extra-vars "tmp_size"
+  Default value is 3
 
   
 ```
@@ -110,7 +117,6 @@ The script uses aws cli commands and ansible amazon.aws modules. As such the ins
 * Using whichever method preferred (GitLab CI/CD, Packer, CloudFormation, AWS System Manager etc) clone/put the Ansible code on the newly launched server
 
 ### Usage
-
 
 Correct use of this Ansible playbook will result in an AWS EC2 instance with the following partitions (using /dev/xvda in example)
 
